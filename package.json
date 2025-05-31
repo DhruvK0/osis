@@ -4,6 +4,7 @@
   "description": "An operating system agent that acts as your personal life assistant",
   "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Dhruv Kanetkar",
