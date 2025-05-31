@@ -14,4 +14,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
+  
+  // Screenshot functionality
+  takeScreenshot: () => ipcRenderer.invoke('screenshot:take'),
+  
+  // OpenAI Vision API integration
+  findSlackIcon: (imageData) => ipcRenderer.invoke('ai:findSlackIcon', imageData),
+  
+  // Mouse automation
+  clickAtCoordinates: (x, y) => ipcRenderer.invoke('mouse:click', x, y),
 }) 
