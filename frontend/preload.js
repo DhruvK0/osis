@@ -19,8 +19,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   takeScreenshot: () => ipcRenderer.invoke('screenshot:take'),
   
   // OpenAI Vision API integration
-  findSlackIcon: (imageData) => ipcRenderer.invoke('ai:findSlackIcon', imageData),
+  findSlackIcon: (screenshotData) => ipcRenderer.invoke('ai:findSlackIcon', screenshotData),
+  findDhruvDM: (screenshotData) => ipcRenderer.invoke('ai:findDhruvDM', screenshotData),
   
   // Mouse automation
   clickAtCoordinates: (x, y) => ipcRenderer.invoke('mouse:click', x, y),
+  clickMouse: (x, y) => ipcRenderer.invoke('mouse:click', x, y)
 }) 

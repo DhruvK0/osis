@@ -95,40 +95,33 @@ Make sure the coordinates are within the screen bounds (0-${screenWidth} for x, 
 
 Pay special attention to the area around coordinates (1310, 1030) as that's where the Slack icon is typically located on this system.`
 
-    // Prepare the content parts
-    const contentParts = [{ text: prompt }]
+    // Use the correct Gemini API structure
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+
+    // Prepare content array
+    const contentArray = [prompt]
     
     // Add reference Slack icon if available
     if (slackIconBase64) {
-      contentParts.push({
+      contentArray.push({
         inlineData: {
           data: slackIconBase64,
           mimeType: "image/png"
         }
       })
-      contentParts.push({ text: "This is the reference Slack icon to look for:" })
     }
     
     // Add the screenshot
-    contentParts.push({
+    contentArray.push({
       inlineData: {
         data: imageBase64,
         mimeType: "image/png"
       }
     })
-    contentParts.push({ text: "Find the Slack icon in this screenshot that matches the reference above. Focus on the area around (1310, 1030) where it's typically located." })
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        {
-          role: "user",
-          parts: contentParts
-        }
-      ]
-    })
+    const response = await model.generateContent(contentArray)
     
-    const content = response.text
+    const content = response.response.text()
     console.log('Gemini response:', content)
     console.log('Screen info:', { screenWidth, screenHeight, scaleFactor })
     
@@ -144,15 +137,94 @@ Pay special attention to the area around coordinates (1310, 1030) as that's wher
       throw new Error(coordinates.error)
     }
     
-    // Apply scale factor if needed
-    const adjustedCoordinates = coordinates
+    // Validate coordinates
+    if (typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
+      throw new Error('Invalid coordinates received from AI')
+    }
     
-    console.log('Original coordinates:', coordinates)
-    console.log('Adjusted coordinates:', adjustedCoordinates)
+    console.log('Final Slack icon coordinates:', coordinates)
     
-    return adjustedCoordinates
+    return coordinates
   } catch (error) {
     console.error('Gemini API error:', error)
+    throw new Error(`AI analysis failed: ${error.message}`)
+  }
+})
+
+// Gemini Vision API handler for finding Dhruv Kanetkar DM
+ipcMain.handle('ai:findDhruvDM', async (event, screenshotData) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key not found. Please set GEMINI_API_KEY environment variable.')
+    }
+
+    const { image: imageBase64, screenWidth, screenHeight, scaleFactor } = screenshotData
+
+    console.log('Starting Dhruv DM search with screen dimensions:', { screenWidth, screenHeight, scaleFactor })
+
+    const prompt = `Please analyze this Slack application screenshot and find the direct message channel or conversation with "Dhruv Kanetkar". 
+
+IMPORTANT: This screenshot is from a screen with dimensions ${screenWidth}x${screenHeight} pixels (scale factor: ${scaleFactor}). 
+
+Look for:
+- A direct message entry with the name "Dhruv Kanetkar" 
+- This could be in the left sidebar under "Direct messages" section
+- It might show as "Dhruv Kanetkar" or just "Dhruv" 
+- Look for a clickable area that represents this person's DM channel
+- The name might appear in a list of conversations or channels
+
+Return ONLY a JSON object with the x and y coordinates of the center of the clickable area for Dhruv Kanetkar's direct message. The coordinates should be relative to the top-left corner of the screen and match the actual screen dimensions of ${screenWidth}x${screenHeight}.
+
+If you cannot find Dhruv Kanetkar's direct message channel, return {"error": "Dhruv Kanetkar DM not found"}. 
+
+Format: {"x": number, "y": number}
+
+Make sure the coordinates are within the screen bounds (0-${screenWidth} for x, 0-${screenHeight} for y).`
+
+    // Use the correct Gemini API structure
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+
+    const response = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: imageBase64,
+          mimeType: "image/png"
+        }
+      }
+    ])
+    
+    const content = response.response.text()
+    console.log('Gemini response for Dhruv DM:', content)
+    console.log('Screen info:', { screenWidth, screenHeight, scaleFactor })
+    
+    // Extract JSON from the response (Gemini might include extra text)
+    const jsonMatch = content.match(/\{[^}]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', content)
+      throw new Error('No valid JSON found in response')
+    }
+    
+    const coordinates = JSON.parse(jsonMatch[0])
+    
+    if (coordinates.error) {
+      throw new Error(coordinates.error)
+    }
+    
+    // Validate coordinates
+    if (typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
+      throw new Error('Invalid coordinates received from AI')
+    }
+    
+    if (coordinates.x < 0 || coordinates.x > screenWidth || coordinates.y < 0 || coordinates.y > screenHeight) {
+      console.warn('Coordinates out of bounds:', coordinates, 'Screen:', { screenWidth, screenHeight })
+    }
+    
+    console.log('Final Dhruv DM coordinates:', coordinates)
+    
+    return coordinates
+  } catch (error) {
+    console.error('Gemini API error for Dhruv DM:', error)
     throw new Error(`AI analysis failed: ${error.message}`)
   }
 })
